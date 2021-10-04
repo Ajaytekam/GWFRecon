@@ -6,6 +6,8 @@ import libs.gitlibs as gitlibs
 import signal 
 import time 
 import logging 
+import requests
+import json
 
 REPONAME = ''
 TEMPLATE_NAME = ''
@@ -19,7 +21,7 @@ LOGS_DOWNLOADED = False
 def StartWorkflow():
     global REPONAME
     global TEMPLATE_NAME 
-    url = 'https://api.github.com/repos/{}/{}/actions/workflows/{}/dispatches'.format(config.GITHUB_ACCOUNT_NAME, repoName, TemplateName)
+    url = 'https://api.github.com/repos/{}/{}/actions/workflows/{}/dispatches'.format(config.GITHUB_ACCOUNT_NAME, REPONAME, TEMPLATE_NAME)
     Json = {
         "ref" : "main"
     }
@@ -29,18 +31,18 @@ def StartWorkflow():
     # querying the github server
     # delay for 10 seconds because repository 
     # it takes some time to initialize the repo
-    print(co.bullets.INFO, co.colors.ORANGE+"Waiting for 10 sec. for initializ     ation of git repo"+co.END)
+    print(co.bullets.INFO, co.colors.ORANGE+"Waiting for 10 sec. for initialization of git repo"+co.END)
     time.sleep(10)
     req = requests.post(url, json=Json, headers=HEADERS, timeout=10)
     logging.info("StartWorkFlow|Url|"+url)
     # check if request is successful or not 
     if req is not None:
-        print(co.bullets.OK, co.colors.GREEN+"Workflow Successfully started for "+TemplateName+co.END)
+        print(co.bullets.OK, co.colors.GREEN+"Workflow Successfully started for "+TEMPLATE_NAME+co.END)
         logging.info("StartWorkFlow|Sucess")
         return 0
     else:
-        print(co.bullets.ERROR, co.colors.RED+"Could not start Workflow fo     r "+TemplateNamee+co.END)
-        logging.critical("Error in StartWorkFlow|TEMPLATE_NAME|"+TemplateName)
+        print(co.bullets.ERROR, co.colors.RED+"Could not start Workflow fo     r "+TEMPLATE_NAME+co.END)
+        logging.critical("Error in StartWorkFlow|TEMPLATE_NAME|"+TEMPLATE_NAME)
         logging.critical("Error Message|"+json.dumps(req.json()))
         return 1
 
@@ -98,7 +100,7 @@ def CheckWorkflowStatus():
     jobsurl = 'https://api.github.com/repos/{}/{}/actions/runs/{}/jobs' # takes input as github_account_name, repoName, job_id
     # preparing headers
     HEADERS = config.HEADERS
-    HEADERS["authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
+    HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
     req = requests.get(runsurl, params=None, headers=HEADERS, timeout=10)
     logging.info("CheckWorkflowStatus|URL|"+runsurl)
     if req is not None:
@@ -137,8 +139,8 @@ def CheckWorkflowStatus():
                 # print below lines only once
                 if not PrintedOnce:
                     HTML_URL = req.json()['jobs'][0]['html_url']
-                    print(co.bullets.INFO, "Visit url for more info: "+co.colors.CYAN+"{}".format(html_url)+co.END)
-                    logging.info("URL for Workflow monitoring|"+html_url)
+                    print(co.bullets.INFO, "Visit url for more info: "+co.colors.CYAN+"{}".format(HTML_URL)+co.END)
+                    logging.info("URL for Workflow monitoring|"+HTML_URL)
                     PrintedOnce = True
                 if req is not None:
                     if req.json()['jobs'][0]['status'] == "completed":
@@ -149,8 +151,7 @@ def CheckWorkflowStatus():
                             sig.RestoreOriginalHandler()
                             print(co.bullets.ERROR, co.colors.RED+"job completed but there are some errors during the run..."+co.END)
                             logging.critical("Job completed but there are some errors during the run")
-                            logging.critical("Check the url|"+html_url)
-                            HTML_URL = req.json()['jobs'][0]['html_url']
+                            logging.critical("Check the url|"+HTML_URL)
                             retVal = CheckRunningTime()
                             retVal = DownloadRunnerLogs()
                             print(co.bullets.INFO, "Visit url for more info: {}".format(HTML_URL)+co.END)
@@ -182,6 +183,7 @@ def CheckWorkflowStatus():
                         continue
             except:
                 logging.critical("Error During Checking Running Workflow status|URL"+jobsurl)    
+                break
         if req.json()['jobs'][0]['conclusion'] != "success":
             JOB_RUN_SUCCESS = False
             # restore the original signal handler
@@ -195,6 +197,7 @@ def CheckWorkflowStatus():
             logging.critical("Job completed but there are some errors during the run")
             logging.critical("Check the url|"+HTML_URL)
             return 1
+        sig.RestoreOriginalHandler()
         return 2
 
 def DeleteWorkflow():
@@ -226,7 +229,7 @@ def DownloadRunnerLogs():
     global LOGS_DOWNLOADED
     if LOGS_DOWNLOADED:
         return 0, True
-         HEADERS = config.HEADERS
+    HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
     if not LOGS_URL:
         print(co.bullets.ERROR, co.colors.RED+" Logs URL is not setted up.!!"+co.END)
@@ -285,7 +288,7 @@ def WorkflowController(RepoName, TemplateName):
     # Setting up soem global variables 
     # for this module internal use 
     global REPONAME
-    REPONAME = repoName
+    REPONAME = RepoName
     global TEMPLATE_NAME 
     TEMPLATE_NAME = TemplateName
     # initiate the workflow 

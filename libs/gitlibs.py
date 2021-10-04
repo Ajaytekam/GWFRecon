@@ -117,6 +117,6 @@ def DeleteRepo(repoName):
         return 0
     else:
         print("Error received : {}".format(req.json()))
-        logging.critical("Error in DeletingRepository|Name|"+REPONAME)
+        logging.critical("Error in DeletingRepository|Name|"+repoName)
         logging.critical("Error Message|"+json.dumps(req.json()))
         return 1    
