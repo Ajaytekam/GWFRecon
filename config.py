@@ -2,7 +2,7 @@
 # Only use one set of key at a time 
 # Github account personal access token
 GITHUB_ACCOUNT_NAME = "bb8pentest"   
-ACCESS_TOKEN = "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"
+ACCESS_TOKEN = "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"
 # Github account personal access token
 #GITHUB_ACCOUNT_NAME = "bb8pentest"   
 #ACCESS_TOKEN = "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"

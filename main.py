@@ -4,7 +4,7 @@ import sys
 import libs.gitlibs as gitlibs
 import libs.coloredOP as co
 import signal
-import enumlibs.TestRunner as TestRunner
+import enumlibs  
 
 def main():
     '''
@@ -43,7 +43,8 @@ def main():
     if gitlibs.DeleteRepo(repoName):
         print(co.bullets.ERROR, co.colors.BRED+"Could not Delete the Repository!! Error Occured.."+co.END)
     '''
-    TestRunner.Execute()
-
+    # enumlibs.TestRunner.Execute()
+    enumlibs.SubDomainEnum.Execute()
+    
 if __name__ == "__main__":
     main()
