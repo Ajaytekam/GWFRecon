@@ -33,7 +33,7 @@ def StartWorkflow():
     # it takes some time to initialize the repo
     print(co.bullets.INFO, co.colors.ORANGE+"Waiting for 10 sec. for initialization of git repo"+co.END)
     time.sleep(10)
-    req = requests.post(url, json=Json, headers=HEADERS, timeout=10)
+    req = requests.post(url, json=Json, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("StartWorkFlow|Url|"+url)
     # check if request is successful or not 
     if req is not None:
@@ -54,7 +54,7 @@ def CheckRunningTime():
     # authorization header
     HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
-    req = requests.get(timing_url, params=None, headers=HEADERS, timeout=10)
+    req = requests.get(timing_url, params=None, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("CheckRunningTime|Url|"+timing_url)
     if str(req.status_code).startswith('2'):
         try:
@@ -101,7 +101,7 @@ def CheckWorkflowStatus():
     # preparing headers
     HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
-    req = requests.get(runsurl, params=None, headers=HEADERS, timeout=10)
+    req = requests.get(runsurl, params=None, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("CheckWorkflowStatus|URL|"+runsurl)
     if req is not None:
         while True:
@@ -109,7 +109,7 @@ def CheckWorkflowStatus():
                 # workflow is not started currently
                 print(co.bullets.INFO, co.colors.ORANGE+"Waiting for the workflow Jobs"+co.END)
                 time.sleep(10)
-                req = requests.get(runsurl, params=None, headers=HEADERS, timeout=10)
+                req = requests.get(runsurl, params=None, headers=HEADERS, timeout=config.TIMEOUT)
             else:
                 break
         ########### Both below values needs to be returned to set into global ########### 
@@ -129,7 +129,7 @@ def CheckWorkflowStatus():
         while True:
             jobsurl = 'https://api.github.com/repos/{}/{}/actions/runs/{}/jobs'.format(config.GITHUB_ACCOUNT_NAME, REPONAME, JOB_ID) # takes input as github_account_name, repoName, job_id
             try:
-                req = requests.get(jobsurl, params=None, headers=HEADERS, timeout=10)
+                req = requests.get(jobsurl, params=None, headers=HEADERS, timeout=config.TIMEOUT)
                 if not req.json()['jobs']:
                     print(co.bullets.ERROR, co.colors.BRED+"Workflow could not Start."+co.END)
                     print(co.bullets.ERROR, co.colors.RED+"There are some problem with supplied {} file!! Please check it Manually.".format(TEMPLATE_NAME)+co.END)
@@ -168,7 +168,7 @@ def CheckWorkflowStatus():
                         for step in req.json()['jobs'][0]['steps']:
                             if step['status'] == "completed":
                                 laststep = step['name']
-                        print("                                                            ", end="\r")   # for clearing the whole line
+                        print("                                                                                                         ", end="\r")   # for clearing the whole line
                         print(co.bullets.INFO, co.colors.ORANGE+"Last step executed: {} .".format(laststep)+co.END, end="\r")
                         time.sleep(2)
                         print(co.bullets.INFO, co.colors.ORANGE+"Last step executed: {} ..".format(laststep)+co.END, end="\r")
@@ -182,21 +182,27 @@ def CheckWorkflowStatus():
                         time.sleep(2)
                         continue
             except:
-                logging.critical("Error During Checking Running Workflow status|URL"+jobsurl)    
-                break
-        if req.json()['jobs'][0]['conclusion'] != "success":
-            JOB_RUN_SUCCESS = False
-            # restore the original signal handler
-            sig.RestoreOriginalHandler()
-            print("")
-            print(co.bullets.ERROR, co.colors.RED+"Job completed but there are some errors during the run..."+co.END)
-            HTML_URL = req.json()['jobs'][0]['html_url']
-            retVal = CheckRunningTime()
-            retVal = DownloadRunnerLogs()
-            print(co.bullets.INFO, "Visit url for more info: {}".format(HTML_URL)+co.END)
-            logging.critical("Job completed but there are some errors during the run")
-            logging.critical("Check the url|"+HTML_URL)
-            return 1
+                pass
+        jobsurl = 'https://api.github.com/repos/{}/{}/actions/runs/{}/jobs'.format(config.GITHUB_ACCOUNT_NAME, REPONAME, JOB_ID) # takes input as github_account_name, repoName, job_id
+        try:
+            req = requests.get(jobsurl, params=None, headers=HEADERS, timeout=config.TIMEOUT)
+            if req.json()['jobs'][0]['conclusion'] != "success":
+                JOB_RUN_SUCCESS = False
+                # restore the original signal handler
+                sig.RestoreOriginalHandler()
+                print("")
+                print(co.bullets.ERROR, co.colors.RED+"Job completed but there are some errors during the run..."+co.END)
+                HTML_URL = req.json()['jobs'][0]['html_url']
+                retVal = CheckRunningTime()
+                retVal = DownloadRunnerLogs()
+                print(co.bullets.INFO, "Visit url for more info: {}".format(HTML_URL)+co.END)
+                logging.critical("Job completed but there are some errors during the run")
+                logging.critical("Check the url|"+HTML_URL)
+                return 1
+            else:
+                print("Some problem with Connection")
+        except:
+            pass
         sig.RestoreOriginalHandler()
         return 2
 
@@ -210,7 +216,7 @@ def DeleteWorkflow():
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
     # sleep for 2 seconds
     time.sleep(2)
-    req = requests.delete(delete_url, data=None, headers=HEADERS, timeout=10)
+    req = requests.delete(delete_url, data=None, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("DeleteWorkflow|Url|"+delete_url)
     if str(req.status_code).startswith('2'):
         print(co.bullets.OK, co.colors.GREEN+"Workflow Deleted successfully.!!"+co.END)
@@ -236,11 +242,11 @@ def DownloadRunnerLogs():
         logging.critical("Error in DownloadRunnerLogs|Logs URL is not setted up.!!")
     else:
         print(co.bullets.INFO, "Requesting for RunnerLogs.."+co.END)
-        logreq = requests.get(LOGS_URL,headers=HEADERS, allow_redirects=True, stream=True, timeout=10)
+        logreq = requests.get(LOGS_URL,headers=HEADERS, allow_redirects=True, stream=True, timeout=config.TIMEOUT)
         if str(logreq.status_code).startswith('2') or logreq.status_code == 302:
             print(co.bullets.INFO, "Requesting RunnerLogs again for log after 5 second delay..."+co.END)
             time.sleep(5)
-            logreq = requests.get(LOGS_URL,headers=HEADERS, allow_redirects=True, stream=True, timeout=10)
+            logreq = requests.get(LOGS_URL,headers=HEADERS, allow_redirects=True, stream=True, timeout=config.TIMEOUT)
         if str(logreq.status_code).startswith('2') or logreq.status_code == 302:
             FileName = "{}_RunLogs.zip".format(REPONAME)
             Path = "RunnerLogs/{}".format(FileName)
@@ -265,7 +271,7 @@ def CancelWorkflow():
     # authorization header
     HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
-    req = requests.post(cancel_url, data=None, headers=HEADERS, timeout=10)
+    req = requests.post(cancel_url, data=None, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("CancelWorkflow|Url|"+cancel_url)
     if str(req.status_code).startswith('2'):
         print(co.bullets.OK, co.colors.GREEN+"Workflow cancelled successfully.!!"+co.END)

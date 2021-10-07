@@ -35,7 +35,7 @@ def CreateRemoteRepo(repoName):
     HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
     # making API call
-    req = requests.post(url, json=jsonReq, headers=HEADERS, timeout=10)
+    req = requests.post(url, json=jsonReq, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("RepositoryCreationURL"+url)
     # check the status 
     if str(req.status_code).startswith('2'):
@@ -90,7 +90,7 @@ def CloneRepo(repoName):
     logging.info("CloningRepo|Url|"+url)
     try:
         git.Repo.clone_from(url, path)
-        print(co.bullets.OK, co.colors.GREEN+"Repository successfully cloned under ./repo/ directory!"+co.END)
+        print(co.bullets.OK, co.colors.GREEN+"Repository successfully cloned under './repo/{}' directory!".format(repoName)+co.END)
         logging.info("CloningRepository|Sucess")
         logging.info("RepositoryName|"+repoName)
         return 0
@@ -107,7 +107,7 @@ def DeleteRepo(repoName):
     HEADERS = config.HEADERS
     HEADERS["Authorization"] = HEADERS.get("Authorization").format(config.ACCESS_TOKEN)
     # making API call
-    req = requests.delete(delete_url, data=None, headers=HEADERS, timeout=10)
+    req = requests.delete(delete_url, data=None, headers=HEADERS, timeout=config.TIMEOUT)
     logging.info("DeletingRepository|Url|"+delete_url)
     # check the status  
     if str(req.status_code).startswith('2'):
