@@ -6,6 +6,7 @@ import libs.coloredOP as co
 import signal
 import enumlibs  
 import argparse 
+import os 
 
 def Banner():
     print("=======================================================")
@@ -26,10 +27,18 @@ def main():
     MisConfigScan = subparser.add_parser('MisConfigScan')
     SubDomainEnum.add_argument('-d', '--domain', help="Domain name to perform Subdomain Enumeration", type=str, required=True)
     SubDomainEnum.add_argument("-p", "--passive", help="Passive subdomain Enumeration", action="store_true")
+    PortAndServices.add_argument('--mdfile', help="Massdns result file", type=str, required=True)
     args = parser.parse_args() 
     if args.Module == 'SubDomainEnum':
         Banner()
         enumlibs.SubDomainEnum.Execute(args.domain, args.passive)
+    elif args.Module == 'PortAndServices':
+        Banner()
+        if os.path.isfile(args.mdfile):
+            enumlibs.PortAndServices.Execute(args.mdfile)
+        else:
+            print(co.bullets.ERROR, co.colors.RED+"Supplied massdns result file does not exists.\n"+co.END)
+            PortAndServices.print_help()
     else:
         Banner()
         print(co.bullets.CProcess, "Available Modules : \n")
