@@ -6,9 +6,12 @@ import libs.coloredOP as co
 #========
 # Workflow Template : SubDomainEnum.yml
 TemplateName = "SubDomainEnum.yml"
-
 PassiveTemplateData = """
 name: CI
+
+# Environment variables 
+env: 
+  DOMAIN: {}
 
 # Controls when the workflow will run
 on:
@@ -52,13 +55,13 @@ jobs:
           mv findomain-linux /home/runner/go/bin/findomain
   
       - name: Amass Subdomain Scan
-        run: amass enum --passive -o amass.txt -d {} > /dev/null 2>&1
+        run: amass enum --passive -o amass.txt -d ${{{{ env.DOMAIN }}}} > /dev/null 2>&1
 
       - name: assetfinder subdomain Scan
-        run: assetfinder --subs-only {} >> assetfinder.txt
+        run: assetfinder --subs-only ${{{{ env.DOMAIN }}}} >> assetfinder.txt
 
       - name: findomain subdomain Scan
-        run: findomain -q --target {} --threads 20 >> findomain.txt
+        run: findomain -q --target ${{{{ env.DOMAIN }}}} --threads 20 >> findomain.txt
         
       - name: Merging and sorting all files
         run: |
@@ -87,6 +90,10 @@ jobs:
 
 ActiveTemplateData = """
 name: CI
+
+# Environment variables 
+env: 
+  DOMAIN: {}
 
 # Controls when the workflow will run
 on:
@@ -145,13 +152,13 @@ jobs:
           mv findomain-linux /home/runner/go/bin/findomain
 
       - name: Amass Subdomain Scan
-        run: amass enum --passive -o amass.txt -d {} > /dev/null 2>&1
+        run: amass enum --passive -o amass.txt -d ${{{{ env.DOMAIN }}}} > /dev/null 2>&1
 
       - name: assetfinder subdomain Scan
-        run: assetfinder --subs-only {} >> assetfinder.txt
+        run: assetfinder --subs-only ${{{{ env.DOMAIN }}}} >> assetfinder.txt
 
       - name: findomain subdomain Scan
-        run: findomain -q --target {} --threads 20 >> findomain.txt
+        run: findomain -q --target ${{{{ env.DOMAIN }}}} --threads 20 >> findomain.txt
 
       - name: Merging and sorting all files
         run: |
@@ -161,11 +168,11 @@ jobs:
       ### Active subDomain Scan
       - name: Generating subdomains with dnsgen and commonspeak2 list
         run: |
-          echo {} | dnsgen - >> dnsgensubs.txt
+          echo ${{{{ env.DOMAIN }}}} | dnsgen - >> dnsgensubs.txt
           wget https://github.com/assetnote/commonspeak2-wordlists/raw/master/subdomains/subdomains.txt
           while IFS= read -r line
           do
-            echo $line".{}" >> commonspeak2_subd.txt
+            echo $line".${{{{ env.DOMAIN }}}}" >> commonspeak2_subd.txt
           done < subdomains.txt
           sort PassiveSubD.txt commonspeak2_subd.txt dnsgensubs.txt -u >> initialSubDomains.txt
           rm commonspeak2_subd.txt dnsgensubs.txt subdomains.txt
@@ -214,17 +221,18 @@ def Execute(domain, passive):
         global PassiveTemplateData
         TemplateData = PassiveTemplateData
         # Preparing template 
-        TemplateData = TemplateData.format(domain, domain, domain)
+        TemplateData = TemplateData.format(domain)
     else:
         global ActiveTemplateData
         TemplateData = ActiveTemplateData
         # Preparing template 
-        TemplateData = TemplateData.format(domain, domain, domain, domain, domain)
+        TemplateData = TemplateData.format(domain)
     # Setting up the github repository 
     repoName = gitlibs.SetRepoName()
     if gitlibs.CreateRemoteRepo(repoName):
         print(co.bullets.ERROR, co.colors.BRED+"Could not create repository: Exiting Program."+co.END)
         sys.exit(1)
+    # pushing subdomain file 
     # pushing workflow yml file 
     TemplatePath = '.github/workflows/{}'.format(TemplateName) 
     commitMessage = "github sample workflow added"
