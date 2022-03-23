@@ -1,10 +1,11 @@
 #### Access keys 
 # Only use one set of key at a time 
 # Github account personal access token
-GITHUB_ACCOUNT_NAME = "gwfrecon"   
-ACCESS_TOKEN = "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"   
-#GITHUB_ACCOUNT_NAME = "bb8pentest"
-#ACCESS_TOKEN = "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"
+GITHUB_ACCOUNT_NAME = "YOUR_GITHUB_USERNAME"   
+ACCESS_TOKEN = "YOUR_GITHUB_PAN_ACCESS_TOKENS"   
+# Example : 
+# GITHUB_ACCOUNT_NAME = "TestUser"
+# ACCESS_TOKEN = "ghp_TW96aWxsYTogTW96aWxsYS81LjAgKFdpbmRvd3MgT"
 
 # HTTP Headers 
 HEADERS = {
