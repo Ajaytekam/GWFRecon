@@ -17,3 +17,4 @@ else
     sudo apt install python3 -y
     Installpip
 fi
+echo "[+] Installation process completed."
