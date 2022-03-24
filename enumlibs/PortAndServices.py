@@ -9,7 +9,7 @@ import libs.coloredOP as co
 
 #========
 # Workflow Template : PortAndServices.yml
-TemplateName = "JSScan.yml"
+TemplateName = "PortAndServices.yml"
 TemplateData = """name: CI
 
 # Controls when the workflow will run
@@ -29,45 +29,81 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      #  Setup python3 environment
-      - name: setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8.0'
-
       # Runs a set of commands using the runners shell
       - name: Prepare System
         run: |
           sudo apt-get update -y;
 
-      - name: Install gau, hakrawler, subjs, httpx 
+      - name: Install masscan
         run: |
-          go install github.com/lc/gau/v2/cmd/gau@latest  
-          go install github.com/hakluke/hakrawler@latest   
-          GO111MODULE=on go get -u -v github.com/lc/subjs@latest  
-          go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
-
-      - name: Install pip, linkfinder, secretfinder
-        run: |
-          python -m pip install --upgrade pip
-          git clone https://github.com/m4ll0k/SecretFinder.git secretfinder 
-          pushd secretfinder
-          pip install -r requirements.txt
-          popd
-          git clone https://github.com/GerbenJavado/LinkFinder.git linkfinder    
-          pushd linkfinder
-          pip install -r requirements.txt
+          sudo apt-get --assume-yes install git make gcc
+          git clone https://github.com/robertdavidgraham/masscan
+          pushd masscan
+          make
           popd
 
-      - name: Testrun of linkfinder, secretfinder
+      - name: Install nmap
+        run: sudo apt-get --assume-yes install nmap
+
+      - name: Run masscan
         run: |
-          python3 linkfinder/linkfinder.py --help 
-          python3 secretfinder/secretfinder.py --help 
+          # get ip from massdnsResult file
+          cat {} | egrep -o "([0-9]{{1,3}}[\.]){{3}}[0-9]{{1,3}}" | sort -u >> ips.txt
+          sudo masscan/bin/masscan -iL ips.txt --rate 10000 --top-ports 1000 -oL masscanResults.txt
+          rm -rf masscan
+
+      - name: Parsing Masscan Result
+        run: |
+          # store the result on ip:port order
+          cat masscanResults.txt | grep open | awk '{{print $4":"$3}}' | sort -u >> parsedResult.txt
+          # filter and sort the IP from parsedResult.txt file into a new file
+          cat parsedResult.txt | cut -d: -f1 | sort -u >> aliveIPs.txt
+          # parse uniqe IPs and their port numbers in ip:port1,port2,port3...,portN format
+          for ip in `cat aliveIPs.txt`
+          do
+            ports=`cat parsedResult.txt | grep $ip | cut -d: -f2`
+            ptlist=`echo $ports`
+            echo "$ip:$ptlist" | tr " " , >> ip_ports.txt
+          done
+
+      - name: Nmap Scan
+        run: |
+          # Variables for html result file
+          OPTemplateHEAD='<html><head><title>PortAndServices Scan Result</title><link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.1/css/jquery.dataTables.css"><script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script><script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.1/js/jquery.dataTables.js"></script><style>h1{{text-align: center;color: blue;}}td{{text-align: center;}}</style></head><body><h1>Port and Service Scan Result</h1><table id="result" class="display" style="width:100%"></table><script>var dataSet = ['
+          OPTemplateTAIL='];$(document).ready(function(){{$("#result").DataTable({{data:dataSet,columns:[{{title:"IP Address"}},{{title:"Domain|s"}},{{title:"Open Ports"}},{{title:"Scan Details"}}]}});}});</script></body></html>'
+          # nmap scan from file ip_ports.txt
+          echo $OPTemplateHEAD >> result.html
+          mkdir results
+          while IFS=: read -r ip ports
+            nmap -sV -p$ports $ip -oN results/$ip
+            # grep domains
+            DOMAINSTEMP=`cat massdnsResults.txt | grep $ip | awk '{{print $1}}' | sed 's/.$//g'`
+            DOMAINS=`echo $DOMAINSTEMP | tr " " ,`
+            echo "[\"$ip\",\"$DOMAINS\",\"$ports\",\"<a href='results/$ip'><button>Result</button></a>\"]," >> result.html
+          done < ip_ports.txt
+          echo $OPTemplateTAIL >> result.html
+          # Scan completed cleaning the files
+          rm masscanResults.txt
+          rm parsedResult.txt
+          rm aliveIPs.txt
+          rm ip_ports.txt
+          tar -cvf PortScanResult.tar result.html massdnsResults.txt results
+          rm result.html
+          rm massdnsResults.txt
+          rm -rf results
+
+      # Code for splitting file which are +99MB
+      - name: Splitting big files
+        run: |
+          if [ `du -m PortScanResult.tar | cut -d" " -f1 | tr -d -c 0-9` -gt 99 ]
+          then
+            split -d -b20971520 PortScanResult.tar PortScanResult
+          fi
 
       # github doesn't allow you to commit files > 100M
       - name: Pruning files greater than 100MB
         run: find . -size +99M -delete
-         
+
       - name: Commit and push
         uses: stefanzweifel/git-auto-commit-action@v4.2.0
         with:
