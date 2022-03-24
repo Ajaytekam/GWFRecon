@@ -73,7 +73,10 @@ __Perform Misconfiguration scan :__
 ./gwfrecon.py MisConfigScan --subdfile subdomains.txt
 ```  
 
-
 ### <span style="color:red">Warning</span>
 
 Continiously using this tool may lead to disable Github CI/CD workflow on your github account, so i advice you to do not use the script on your main github account. and also use this tool for Educational/Testing purpose only. The Developer of this tool is not responsible for any kind of harmful activity done by users.   
+
+__Tools used :__  ffuf, jq, httpx, gau, subjs, hakcrawler, linkdiner, secretfinder, nuclei, nmap, masscan. 
+
+
