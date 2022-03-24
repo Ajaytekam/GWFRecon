@@ -1,8 +1,14 @@
-#!/bin/bash 
+#!/bin/bash
 
 Installpip(){
-    echo "[+] Installing pip"
-    python -m pip install --upgrade pip
+    echo "[+] Installing pip3"
+    chk=`whoami`
+    if [ "$chk" == "root" ]
+    then
+        apt install python3-pip -y
+    else
+        sudo apt install python3-pip -y
+    fi
     echo "[+] Installing requirements"
     pip install -r requirements.txt
 }
@@ -14,7 +20,13 @@ then
     Installpip
 else
     echo "[+] Installing python3"
-    sudo apt install python3 -y
+    chk=`whoami`
+    if [ "$chk" == "root" ]
+    then
+        apt install python3 -y
+    else
+        sudo apt install python3 -y
+    fi
     Installpip
 fi
 echo "[+] Installation process completed."
